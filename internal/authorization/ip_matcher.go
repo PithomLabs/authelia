@@ -24,6 +24,17 @@ func selectMatchingNetworkGroups(networks []string, aclNetworks []schema.ACLNetw
 	return selectedNetworkGroups
 }
 
+func isIPAddressOrCIDR(ip net.IP, network string) bool {
+	switch {
+	case ip.String() == network:
+		return true
+	case strings.Contains(network, "/"):
+		return parseCIDR(ip, network)
+	}
+
+	return false
+}
+
 func parseCIDR(ip net.IP, network string) bool {
 	_, ipNet, err := net.ParseCIDR(network)
 	if err != nil {
@@ -47,30 +58,16 @@ func isIPMatching(ip net.IP, networks []string, aclNetworks []schema.ACLNetwork)
 	matchingNetworkGroups := selectMatchingNetworkGroups(networks, aclNetworks)
 
 	for _, network := range networks {
-		switch {
-		case ip.String() == network:
-			return true
-		case strings.Contains(network, "/"):
-			if !parseCIDR(ip, network) {
-				continue
-			}
-
-			return true
-		case net.ParseIP(network) == nil && !strings.Contains(network, "/"):
+		if net.ParseIP(network) == nil && !strings.Contains(network, "/") {
 			for _, n := range matchingNetworkGroups {
-				for _, networks := range n.Networks {
-					switch {
-					case ip.String() == networks:
-						return true
-					case strings.Contains(networks, "/"):
-						if !parseCIDR(ip, networks) {
-							continue
-						}
-
+				for _, network := range n.Networks {
+					if isIPAddressOrCIDR(ip, network) {
 						return true
 					}
 				}
 			}
+		} else if isIPAddressOrCIDR(ip, network) {
+			return true
 		}
 	}
 

@@ -81,7 +81,7 @@ func ValidateRules(configuration schema.AccessControlConfiguration, validator *s
 		for _, network := range r.Networks {
 			if !IsNetworkValid(network) {
 				if !IsNetworkGroupValid(configuration, network) {
-					validator.Push(fmt.Errorf("Network %s must be a valid network or network group", network))
+					validator.Push(fmt.Errorf("Network %s is not a valid network or network group", network))
 				}
 			}
 		}
